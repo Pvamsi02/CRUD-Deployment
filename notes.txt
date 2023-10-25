@@ -1,0 +1,395 @@
+https://docs.google.com/document/d/1PK1kSxlU0faniJ-ZkYLBQcQ8ILEWiYUnbavwClx1XiE/edit 
+1. Create a project folder
+2. Inside that create a backend folder
+3. In the terminal move to backend by using the command cd backend
+4. After that, create a package.json file by using the command npm init -y
+5. Create a file called index.js 
+6. Install the necessary modules using the command npm install nodemon express mongoose@6.9.1
+7. Modification in package.json file
+
+8. Start code in index.js
+
+const mongoose = require("mongoose");
+const express = require("express");
+const studentRoute = require("./controller/studentRoute");
+const cors = require("cors");
+const bodyParser = require("body-parser");
+
+//MongoDB Altas Connection
+mongoose.set("strictQuery",true);
+mongoose.connect("mongodb+srv://test:12345@cluster0.bucpnac.mongodb.net/schooldb");
+var db = mongoose.connection;
+db.on("open",()=>console.log("Connected to DB"));
+db.on("error",()=>console.log("Error occurred"));
+
+//Creating a app
+const app = express();
+
+//Middleware
+app.use(bodyParser.json());
+app.use(bodyParser.urlencoded({extended:true}));
+app.use(cors());
+app.use("/students",studentRoute);
+
+//Listening to a port number
+app.listen(4000,()=>{
+    console.log("Server started at 4000");
+})
+
+9. Create a folder called controller and inside that create a file as studentRoute
+const express = require("express");
+const studentSchema = require("../model/studentSchema");
+const mongoose = require("mongoose");
+
+const studentRoute = express.Router();
+
+studentRoute.post("/create-student",(req,res)=>{
+    studentSchema.create(req.body,(err,data)=>{
+        if(err)
+            return err;
+        else
+            res.json(data);
+    })
+})
+
+studentRoute.get("/",(req,res)=>{
+    studentSchema.find((err,data)=>{
+        if(err)
+            return err;
+        else
+            res.json(data);
+    })
+})
+studentRoute.route("/update-student/:id")
+.get((req,res)=>{
+
+console.log(req.params.id) studentSchema.findById(mongoose.Types.ObjectId(req.params.id),(err,data)=>{
+        if(err)
+            res.json(err);
+        else
+            res.json(data);
+    })
+})
+.put((req,res)=>{
+	console.log(req.params.id);
+    studentSchema.findByIdAndUpdate(
+        mongoose.Types.ObjectId(req.params.id),
+        {$set: req.body},
+        (err,data)=>{
+            if(err)
+                return err;
+            else
+                res.json(data);
+        })
+})
+
+
+studentRoute.delete("/delete-student/:id",(req,res)=>{
+    studentSchema.findByIdAndRemove(mongoose.Types.ObjectId(req.params.id),(err,data)=>{
+        if(err)
+            return err;
+        else
+            res.json(data);
+    })
+})
+
+module.exports = studentRoute;
+
+10. Create a model folder inside that create a file called studentSchema
+
+
+const mongoose = require("mongoose");
+const studentSchema = new mongoose.Schema({
+    "name":{type:String},
+    "email":{type:String},
+    "rollNo":{type:Number}
+},
+{
+    collection: "students"
+});
+
+module.exports = mongoose.model("studentSchema",studentSchema);
+
+11. To run the application enter the command as npm start
+
+Create a react application using the command 
+npx create-react-app frontend
+
+Move to frontend folder using the command
+cd frontend 
+
+Install the necessary module such as axios, bootstrap, react-router-dom using the following command
+npm install axios bootstrap@5 react-router-dom
+
+index.js
+
+
+import React from 'react';
+import ReactDOM from 'react-dom/client';
+import './index.css';
+import App from './App';
+import reportWebVitals from './reportWebVitals';
+
+const root = ReactDOM.createRoot(document.getElementById('root'));
+root.render(
+    <App />
+);
+
+// If you want to start measuring performance in your app, pass a function
+// to log results (for example: reportWebVitals(console.log))
+// or send to an analytics endpoint. Learn more: https://bit.ly/CRA-vitals
+reportWebVitals();
+
+App.js
+
+import './App.css';
+import "../node_modules/bootstrap/dist/css/bootstrap.min.css";
+import { HashRouter, Routes, Route } from 'react-router-dom';
+import Nav from './components/Nav';
+import CreateStudent from './components/CreateStudent';
+import StudentList from './components/StudentList';
+import EditStudent from './components/EditStudent';
+
+function App() {
+  return (
+    <div class="container">
+      <HashRouter>
+        <Nav />
+        <Routes>
+          <Route path="/" element={<CreateStudent />} />
+          <Route path="/create-student" element={<CreateStudent />} />
+          <Route path="/student-list" element={<StudentList />} />
+     <Route path="/edit-student/:id" element={<EditStudent />} />
+        </Routes>
+      </HashRouter>
+    </div>
+  );
+}
+
+export default App;
+
+components/Nav.js
+
+import {Link} from "react-router-dom";
+
+function Nav()
+{
+    return(
+        <nav class="navbar bg-warning">
+            <Link to="/" class="navbar-brand mx-5">CRUD operations</Link>
+            <div class="nav mx-5">
+                <Link to="/create-student" class="nav-link">Create Student</Link>
+                <Link to="/student-list" class="nav-link">Student List</Link>
+            </div>
+        </nav>
+    )
+}
+export default Nav;
+
+components/CreateStudent.js
+
+import { useState } from "react";
+import StudentForm from "./StudentForm";
+import Axios from "axios";
+
+function CreateStudent()
+{
+    const [arr,setArr] = useState([]); //[Raj,raj@gmail.com,1]
+   
+    const getState = (out) =>{
+        setArr(out);
+    }
+
+    const handleSubmit = () => {
+        const data = {name:arr[0],email:arr[1],rollNo:arr[2]};
+        Axios.post("http://localhost:4000/students/create-student",data)
+        .then((res)=>{
+            if(res.status === 200)
+                alert("Record added successfully");
+            else
+                Promise.reject();
+        })
+        .catch((err)=>console.log(err));
+    }
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <StudentForm getState={getState}
+            nameValue=""
+            emailValue=""
+            rollNoValue =""
+            >Create Student</StudentForm>
+        </form>
+    )
+}
+export default CreateStudent;
+
+
+components/StudentForm.js
+
+import { useState } from "react";
+
+function StudentForm(props)
+{
+    const [name,setName] = useState(props.nameValue);
+    const [email,setEmail] = useState(props.emailValue);
+    const [rollNo,setRollNo] = useState(props.rollNoValue);
+
+    const arr = [name,email,rollNo];
+   
+    const handleClick = () => {
+        props.getState(arr);
+    }
+
+    return (
+        <div style={{maxWidth:"40%",margin:"0px auto"}}>
+            <input defaultValue={props.nameValue} onChange={(event)=>setName(event.target.value)} class="form-control my-2" placeholder="Enter your name" />
+            <input defaultValue={props.emailValue} onChange={(event)=>setEmail(event.target.value)} class="form-control my-2" placeholder="Enter your email" />
+            <input defaultValue={props.rollNoValue} onChange={(event)=>setRollNo(event.target.value)} class="form-control my-2" placeholder="Enter your roll number" />
+            <button onClick={handleClick} class="btn btn-success my-2 d-block mx-auto" type="submit">{props.children}</button>
+        </div>
+    )
+}
+export default StudentForm;
+
+
+
+components/StudentList.js
+
+import {useEffect, useState } from "react";
+import Axios from "axios";
+import StudentListRow from "./StudentListRow";
+
+function StudentList()
+{
+    const [arr,setArr] = useState([]);
+    useEffect(()=>{
+        Axios.get("http://localhost:4000/students/")
+        .then((res)=>{
+            if(res.status === 200)
+                setArr(res.data);
+            else
+                Promise.reject();
+        })
+        .catch((err)=>alert(err));
+    },[]);
+
+    const ListItems = () => {
+        return arr.map((val,ind) => {  //[{_id,name,email,rollNo},{},{}]
+            return <StudentListRow obj={val} />
+        })
+    }
+    return (
+        <table class="table table-success table-bordered table-striped">
+            <thead>
+                <tr style={{backgroundColor:"forestgreen"}}>
+                    <th class="text-center">Name</th>
+                    <th class="text-center">Email</th>
+                    <th class="text-center">Roll Number</th>
+                    <th class="text-center">Action</th>
+                </tr>
+            </thead>
+            <tbody>
+                {ListItems()}
+            </tbody>
+        </table>
+    )
+}
+export default StudentList;
+
+components/StudentListRow.js
+
+import Axios from "axios";
+import {Link} from "react-router-dom";
+
+function StudentListRow(props)
+{
+    const {_id,name,email,rollNo} = props.obj; //Object destruction
+
+    const handleClick = () => {
+        Axios.delete("http://localhost:4000/students/delete-student/" + _id)
+        .then((res) => {
+            if(res.status === 200){
+                alert("Record deleted successfully");
+                window.location.reload();
+            }
+            else    
+                Promise.reject();
+        })
+        .catch((err)=>alert(err));
+    }
+    return (
+        <tr>
+            <td>{name}</td>
+            <td>{email}</td>
+            <td>{rollNo}</td>
+            <td>
+                <button class="btn btn-success ms-3">
+                    <Link class="text-decoration-none text-light" to={"/edit-student/"+ _id}>Edit</Link>
+                </button>
+                <button onClick={handleClick} class="btn btn-danger mx-3">Delete</button>
+            </td>
+        </tr>
+    )
+}
+export default StudentListRow;
+
+
+components/EditStudent.js
+import { useEffect, useState } from "react";
+import StudentForm from "./StudentForm";
+import Axios from "axios";
+import { useParams } from "react-router-dom";
+
+function EditStudent()
+{
+    const [initialValue,setInitialValue] = useState({name:"",email:"",rollNo:""});
+    const [newData,setNewData] = useState([]);
+
+    const {id} = useParams();
+    useEffect(()=>{
+        Axios.get("http://localhost:4000/students/update-student/" + id)
+        .then((res)=>{
+            if(res.status === 200){
+                const {name,email,rollNo} = res.data;
+                setInitialValue({name,email,rollNo});
+            }
+            else    
+                Promise.reject();
+        })
+        .catch((err) => alert(err));
+    },[id])
+
+    const getState= (childData) => {
+        setNewData(childData);
+    }
+
+    const handleSubmit = () =>{
+        const data = {name: newData[0],email:newData[1],rollNo:newData[2]}
+        Axios.put("http://localhost:4000/students/update-student/"+ id, data)
+        .then((res)=>{
+            if(res.status === 200)
+                alert("Record updated")
+            else
+                Promise.reject();
+        })
+        .catch((err)=>alert(err));
+    }
+
+    return (
+        <form onSubmit={handleSubmit}>
+            <StudentForm getState={getState}
+                        nameValue={initialValue.name}
+                        emailValue={initialValue.email}
+                        rollNoValue = {initialValue.rollNo}>
+				Update student
+		</StudentForm>
+        </form>
+    )
+}
+export default EditStudent;
+Deployment
+
+Upload the files in the GitHub repository
+
+
